@@ -90,16 +90,24 @@ const Content = ({ userId = "user123" }) => {
       <body>
         <h1>${currentSearch.topic}</h1>
         <p>Original Search: ${currentSearch.timestamp.toLocaleString()}</p>
+        <br>
+        <h2>Summary: </h2>
+        <hr>
         <ul class="summary">
           ${currentSearch.summary
             .map((point) => (point ? `<li>${point}</li>` : ""))
             .join("")}
         </ul>
-        <div class="links">
-          ${currentSearch.links
-            .map((link) => `<div><b>${link.title}</b>: ${link.url}</div>`)
-            .join("")}
-        </div>
+        <br>
+        <h2>Related Articles: </h2>
+        <hr>
+   <div class="links">
+   ${currentSearch.links
+        .map(
+            (_link) => `<div><a href="${_link.link}" target="_blank" style="font-size:clamp(30px, 2vw, 16px); color:#4ea1f3; text-decoration:underline; word-break:break-word;">${_link.link}</a></div>`
+            )
+         .join("")}
+      </div>
       </body>
       </html>
     `;
@@ -115,6 +123,8 @@ const Content = ({ userId = "user123" }) => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  
  const handleLogout = async () => {
     try {
       const response = await fetch("http://localhost:8090/api/auth/logout", {
