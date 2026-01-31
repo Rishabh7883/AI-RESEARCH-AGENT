@@ -9,5 +9,5 @@ public class AiResearchAgentApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(AiResearchAgentApplication.class, args);
 	}
-
+	
 }

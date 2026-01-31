@@ -15,54 +15,97 @@ import com.airesearchagent.ai_research_agent.model.Article;
 @Service
 public class ResearchService {
 
-    @Value("${google.api.key}")
-    private String googleKey;
+    // @Value("${google.api.key}")
+    // private String googleKey;
 
-    @Value("${google.customsearch.cx}")
-    private String searchEngineId;
+    // @Value("${google.customsearch.cx}")
+    // private String searchEngineId;
+
+    @Value("${tavily.api.key}")
+    private String tavilyKey;
 
     @Value("${groq.api.key}")
-    private String groqKey;  
+    private String groqKey;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    // Fetch top 5 Google search results
-    private List<Article> fetchGoogleResults(String topic) {
-        String searchUrl = String.format(
-                "https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s",
-                googleKey, searchEngineId, topic.replace(" ", "+")
+    private final WebClient webClient = WebClient.builder()
+            .baseUrl("https://api.tavily.com")
+            .build();
+
+    // private List<Article> fetchGoogleResults(String topic) {
+    //     String searchUrl = String.format(
+    //             "https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s",
+    //             googleKey, searchEngineId, topic.replace(" ", "+")
+    //     );
+    //
+    //     Map<String, Object> searchResults = restTemplate.getForObject(searchUrl, Map.class);
+    //     List<Map<String, Object>> items =
+    //             (List<Map<String, Object>>) searchResults.get("items");
+    //
+    //     List<Article> articles = new ArrayList<>();
+    //     if (items != null) {
+    //         for (int i = 0; i < Math.min(5, items.size()); i++) {
+    //             Map<String, Object> item = items.get(i);
+    //             Article a = new Article();
+    //             a.setTitle((String) item.get("title"));
+    //             a.setLink((String) item.get("link"));
+    //             a.setSnippet((String) item.get("snippet"));
+    //             articles.add(a);
+    //         }
+    //     }
+    //     return articles;
+    // }
+
+
+    //use tavily search engine instead of google search engine 
+    private List<Article> fetchTavilyResults(String topic) {
+
+        Map<String, Object> requestBody = Map.of(
+                "api_key", tavilyKey,
+                "query", topic,
+                "search_depth", "advanced",
+                "max_results", 5,
+                "include_answers", false,
+                "include_raw_content", false
         );
 
-        Map<String, Object> searchResults = restTemplate.getForObject(searchUrl, Map.class);
-        List<Map<String, Object>> items = (List<Map<String, Object>>) searchResults.get("items");
+        Map<String, Object> response = webClient.post()
+                .uri("/search")
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
+
+        List<Map<String, Object>> results =
+                (List<Map<String, Object>>) response.get("results");
 
         List<Article> articles = new ArrayList<>();
-        if (items != null) {
-            for (int i = 0; i < Math.min(5, items.size()); i++) {
-                Map<String, Object> item = items.get(i);
+
+        if (results != null) {
+            for (Map<String, Object> r : results) {
                 Article a = new Article();
-                a.setTitle((String) item.get("title"));
-                a.setLink((String) item.get("link"));
-                a.setSnippet((String) item.get("snippet"));
+                a.setTitle((String) r.get("title"));
+                a.setLink((String) r.get("url"));
+                a.setSnippet((String) r.get("content"));
                 articles.add(a);
             }
         }
         return articles;
     }
 
-    // Call Groq API 
     private String callGroq(String prompt) {
         WebClient client = WebClient.builder()
-                .baseUrl("https://api.groq.com/openai/v1/chat/completions") // ✅ Groq endpoint
+                .baseUrl("https://api.groq.com/openai/v1/chat/completions")
                 .defaultHeader("Authorization", "Bearer " + groqKey)
                 .defaultHeader("Content-Type", "application/json")
                 .build();
 
         Map<String, Object> requestBody = Map.of(
-            //Most powerful, versatile LLaMA 3.3 model (70B params).
-                "model", "llama-3.3-70b-versatile",  //  Groq model
+                "model", "llama-3.3-70b-versatile",
                 "messages", List.of(
-                        Map.of("role", "system", "content", "You are a research assistant. Provide a concise summary as multiple bullet points, one per line."),
+                        Map.of("role", "system",
+                                "content", "You are a research assistant. Provide a concise summary as multiple bullet points, one per line."),
                         Map.of("role", "user", "content", prompt)
                 ),
                 "max_tokens", 500,
@@ -76,34 +119,34 @@ public class ResearchService {
                     .bodyToMono(Map.class)
                     .block();
 
-            if (response == null || response.get("choices") == null) {
-                return "No response from Groq.";
-            }
+            List<Map<String, Object>> choices =
+                    (List<Map<String, Object>>) response.get("choices");
 
-            List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get("choices");
-            Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
+            Map<String, Object> message =
+                    (Map<String, Object>) choices.get(0).get("message");
 
             return message.get("content").toString();
 
         } catch (WebClientResponseException e) {
-            e.printStackTrace();
-            return "HTTP error " + e.getStatusCode() + " - " + e.getResponseBodyAsString();
+            return "HTTP error " + e.getStatusCode();
         } catch (Exception e) {
-            e.printStackTrace();
             return "Error calling Groq API: " + e.getMessage();
         }
     }
 
-    // Main method: Fetch + Summarize
     public Map<String, Object> fetchResearch(String topic) {
-        List<Article> articles = fetchGoogleResults(topic);
+
+        // List<Article> articles = fetchGoogleResults(topic);
+        List<Article> articles = fetchTavilyResults(topic);
 
         StringBuilder prompt = new StringBuilder("Summarize these articles:\n\n");
         for (Article a : articles) {
-            prompt.append("- ").append(a.getTitle())
-                    .append(": ").append(a.getSnippet()).append("\n");
+            prompt.append("- ")
+                  .append(a.getTitle())
+                  .append(": ")
+                  .append(a.getSnippet())
+                  .append("\n");
         }
-        prompt.append("\nYou are a research assistant. Provide a concise summary as multiple bullet points, one per line.");
 
         return Map.of(
                 "topic", topic,
