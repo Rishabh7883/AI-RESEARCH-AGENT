@@ -7,6 +7,8 @@ import {
 import { useContext } from "react";
 import { UserContext } from "../components/userContext";
 import { URL } from "../App";
+import jsPDF from "jspdf";
+
 
  function toTitleCase(text) {
   return text != null
@@ -75,55 +77,102 @@ const Content = ({ userId = "user123" }) => {
     }
   };
 
-  const handleSavePDF = () => {
-    if (!currentSearch) return;
-    const pdfContent = `
-      <html>
-      <head>
-      <meta charset="utf-8">
-      <title>${currentSearch.topic}</title>
-      <style>
-        body { font-family: sans-serif; background: #1f2937; color: #f0f0f0; margin: 40px; }
-        .summary { margin: 20px 0; }
-        .links div { margin: 10px 0; }
-      </style>
-      </head>
-      <body>
-        <h1>${currentSearch.topic}</h1>
-        <p>Original Search: ${currentSearch.timestamp.toLocaleString()}</p>
-        <br>
-        <h2>Summary: </h2>
-        <hr>
-        <ul class="summary">
-          ${currentSearch.summary
-            .map((point) => (point ? `<li>${point}</li>` : ""))
-            .join("")}
-        </ul>
-        <br>
-        <h2>Related Articles: </h2>
-        <hr>
-   <div class="links">
-   ${currentSearch.links
-        .map(
-            (_link) => `<div><a href="${_link.link}" target="_blank" style="font-size:clamp(30px, 2vw, 16px); color:#4ea1f3; text-decoration:underline; word-break:break-word;">${_link.link}</a></div>`
-            )
-         .join("")}
-      </div>
-      </body>
-      </html>
-    `;
-    const blob = new Blob([pdfContent], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `search-${currentSearch.topic
-      .replace(/\s+/g, "-")
-      .toLowerCase()}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+
+const handleSavePDF = () => {
+  const doc = new jsPDF();
+
+  let y = 20;
+
+  doc.setFontSize(18);
+  doc.text(currentSearch.topic, 10, y);
+
+  y += 15;
+
+  doc.setFontSize(12);
+  doc.text(
+    `Generated: ${new Date(currentSearch.timestamp).toLocaleString()}`,
+    10,
+    y
+  );
+
+  y += 15;
+
+  doc.setFontSize(14);
+  doc.text("Summary", 10, y);
+
+  y += 10;
+
+  currentSearch.summary.forEach((point) => {
+    doc.text(`• ${point}`, 10, y);
+    y += 8;
+  });
+
+  y += 10;
+
+  doc.setFontSize(14);
+  doc.text("Related Articles", 10, y);
+
+  y += 10;
+
+  currentSearch.links.forEach((link) => {
+    doc.text(link.link, 10, y);
+    y += 8;
+  });
+
+  doc.save(
+    `search-${currentSearch.topic.replace(/\s+/g, "-").toLowerCase()}.pdf`
+  );
+};
+
+  // const handleSavePDF = () => {
+  //   if (!currentSearch) return;
+  //   const pdfContent = `
+  //     <html>
+  //     <head>
+  //     <meta charset="utf-8">
+  //     <title>${currentSearch.topic}</title>
+  //     <style>
+  //       body { font-family: sans-serif; background: #1f2937; color: #f0f0f0; margin: 40px; }
+  //       .summary { margin: 20px 0; }
+  //       .links div { margin: 10px 0; }
+  //     </style>
+  //     </head>
+  //     <body>
+  //       <h1>${currentSearch.topic}</h1>
+  //       <p>Original Search: ${currentSearch.timestamp.toLocaleString()}</p>
+  //       <br>
+  //       <h2>Summary: </h2>
+  //       <hr>
+  //       <ul class="summary">
+  //         ${currentSearch.summary
+  //           .map((point) => (point ? `<li>${point}</li>` : ""))
+  //           .join("")}
+  //       </ul>
+  //       <br>
+  //       <h2>Related Articles: </h2>
+  //       <hr>
+  //  <div class="links">
+  //  ${currentSearch.links
+  //       .map(
+  //           (_link) => `<div><a href="${_link.link}" target="_blank" style="font-size:clamp(30px, 2vw, 16px); color:#4ea1f3; text-decoration:underline; word-break:break-word;">${_link.link}</a></div>`
+  //           )
+  //        .join("")}
+  //     </div>
+  //     </body>
+  //     </html>
+  //   `;
+  //   const blob = new Blob([pdfContent], { type: "text/html" });
+  //   const url = URL.createObjectURL(blob);
+  //   const a = document.createElement("a");
+  //   a.href = url;
+  //   a.download = `search-${currentSearch.topic
+  //     .replace(/\s+/g, "-")
+  //     .toLowerCase()}.html`;
+  //   document.body.appendChild(a);
+  //   a.click();
+  //   document.body.removeChild(a);
+  //   URL.revokeObjectURL(url);
+  // };
 
   
  const handleLogout = async () => {
