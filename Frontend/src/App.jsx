@@ -3,7 +3,9 @@
 
 import Body from "./components/body"
 
+export const URL = "https://ai-research-agent-qr6t.onrender.com";
 function App() {
+  
   return (
       <Body/>
   )

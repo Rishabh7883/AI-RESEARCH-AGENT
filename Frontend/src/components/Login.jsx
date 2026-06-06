@@ -2,7 +2,7 @@ import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, User } from "lucide-react";
 import { UserContext } from "./userContext";
-
+import { URL } from "../App";
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useContext(UserContext);
@@ -22,8 +22,8 @@ const Login = () => {
 
     try {
       const endpoint = isSignIn
-        ? "http://localhost:8090/api/auth/login"
-        : "http://localhost:8090/api/auth/register";
+        ? `${URL}/api/auth/login`
+        : `${URL}/api/auth/register`;
 
       const payload = isSignIn
         ? { email, password }

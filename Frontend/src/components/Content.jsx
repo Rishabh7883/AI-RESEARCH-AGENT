@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useContext } from "react";
 import { UserContext } from "../components/userContext";
+import { URL } from "../App";
 
  function toTitleCase(text) {
   return text != null
@@ -38,7 +39,7 @@ const Content = ({ userId = "user123" }) => {
 
     try {
       const response = await fetch(
-        `http://localhost:8090/research?topic=${encodeURIComponent(
+        `${URL}/research?topic=${encodeURIComponent(
           searchTerm
         )}`,
         {
@@ -127,7 +128,7 @@ const Content = ({ userId = "user123" }) => {
   
  const handleLogout = async () => {
     try {
-      const response = await fetch("http://localhost:8090/api/auth/logout", {
+      const response = await fetch(`${URL}/api/auth/logout`, {
         method: "POST",
         credentials: "include", // ✅ important for cookies/session
         headers: {
